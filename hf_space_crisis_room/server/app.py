@@ -6,7 +6,6 @@ except Exception as e:
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from uuid import uuid4
-import json
 
 from models import IncidentAction, IncidentObservation
 from crisis_room_environment import CrisisRoomEnvironment, _SESSION, pick_incident, DIFFICULTY_CONFIG
@@ -34,22 +33,24 @@ async def reset_with_difficulty(request: Request):
     incident = pick_incident(difficulty)
     cfg = DIFFICULTY_CONFIG[difficulty]
 
-    _SESSION.update({
-        "episode_id": str(uuid4()),
-        "step_count": 0,
-        "max_steps": cfg["max_steps"],
-        "incident": incident,
-        "difficulty": difficulty,
-        "actions_taken": [],
-        "logs_checked": set(),
-        "diagnostics_run": set(),
-        "root_cause_confirmed": False,
-        "services_restored": 0,
-        "team_notified": False,
-        "escalated": False,
-        "resolved": False,
-        "wrong_restarts": 0,
-    })
+    _SESSION.update(
+        {
+            "episode_id": str(uuid4()),
+            "step_count": 0,
+            "max_steps": cfg["max_steps"],
+            "incident": incident,
+            "difficulty": difficulty,
+            "actions_taken": [],
+            "logs_checked": set(),
+            "diagnostics_run": set(),
+            "root_cause_confirmed": False,
+            "services_restored": 0,
+            "team_notified": False,
+            "escalated": False,
+            "resolved": False,
+            "wrong_restarts": 0,
+        }
+    )
 
     context = None
     if cfg["visible_logs"]:
@@ -78,17 +79,35 @@ async def reset_with_difficulty(request: Request):
 
 @app.get("/tasks", include_in_schema=False)
 async def list_tasks():
-    return JSONResponse(content={
-        "tasks": [
-            {"name": "easy-incident", "difficulty": "easy", "max_steps": 8, "description": "Single service down, root cause visible in logs"},
-            {"name": "medium-incident", "difficulty": "medium", "max_steps": 10, "description": "Cascading failure across multiple services"},
-            {"name": "hard-incident", "difficulty": "hard", "max_steps": 12, "description": "Silent corruption or intermittent failure — no obvious alerts"},
-        ]
-    })
+    return JSONResponse(
+        content={
+            "tasks": [
+                {
+                    "name": "easy-incident",
+                    "difficulty": "easy",
+                    "max_steps": 8,
+                    "description": "Single service down, root cause visible in logs",
+                },
+                {
+                    "name": "medium-incident",
+                    "difficulty": "medium",
+                    "max_steps": 10,
+                    "description": "Cascading failure across multiple services",
+                },
+                {
+                    "name": "hard-incident",
+                    "difficulty": "hard",
+                    "max_steps": 12,
+                    "description": "Silent corruption or intermittent failure — no obvious alerts",
+                },
+            ]
+        }
+    )
 
 
 def main(host: str = "0.0.0.0", port: int = 8000) -> None:
     import uvicorn
+
     uvicorn.run(app, host=host, port=port)
 
 

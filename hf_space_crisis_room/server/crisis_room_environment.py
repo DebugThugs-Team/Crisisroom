@@ -1,9 +1,17 @@
 from uuid import uuid4
-import json
 import random
 
-from openenv.core.env_server.interfaces import Environment
-from openenv.core.env_server.types import State
+try:
+    from openenv.core.env_server.interfaces import Environment
+    from openenv.core.env_server.types import State
+except Exception:
+    class Environment:  # type: ignore
+        pass
+
+    class State:  # type: ignore
+        def __init__(self, episode_id=None, step_count=0):
+            self.episode_id = episode_id
+            self.step_count = step_count
 
 from models import IncidentAction, IncidentObservation
 
@@ -16,7 +24,11 @@ INCIDENTS = {
             "root_cause": "db_connection_pool_exhausted",
             "affected_services": ["payment-service"],
             "initial_alerts": ["ALERT: payment-service HTTP 500 rate > 40% for 5 minutes"],
-            "initial_status": {"payment-service": "degraded", "auth-service": "healthy", "inventory-service": "healthy"},
+            "initial_status": {
+                "payment-service": "degraded",
+                "auth-service": "healthy",
+                "inventory-service": "healthy",
+            },
             "logs": {
                 "payment-service": "ERROR: could not obtain connection from pool — pool size 10, waiting 30s timeout\nERROR: HikariPool-1 — Connection is not available, request timed out after 30000ms\nWARN: DB connection pool exhausted, consider increasing pool size",
                 "auth-service": "INFO: all systems normal",
@@ -142,7 +154,7 @@ INCIDENTS = {
             "id": "cascading-dns",
             "title": "Intermittent failures across multiple services — no clear pattern",
             "root_cause": "dns_resolver_misconfiguration_after_infra_change",
-            "affected_services": ["api-gateway", "microservice-mesh","dns-resolver"],
+            "affected_services": ["api-gateway", "microservice-mesh", "dns-resolver"],
             "initial_alerts": [
                 "ALERT: api-gateway intermittent connection refused (30% requests)",
                 "ALERT: service mesh health checks flapping",
@@ -172,9 +184,9 @@ INCIDENTS = {
 }
 
 DIFFICULTY_CONFIG = {
-    "easy":   {"max_steps": 8,  "visible_logs": True,  "visible_diagnostics": False},
-    "medium": {"max_steps": 10, "visible_logs": True,  "visible_diagnostics": False},
-    "hard":   {"max_steps": 12, "visible_logs": False, "visible_diagnostics": False},
+    "easy": {"max_steps": 8, "visible_logs": True, "visible_diagnostics": False},
+    "medium": {"max_steps": 10, "visible_logs": True, "visible_diagnostics": False},
+    "hard": {"max_steps": 12, "visible_logs": False, "visible_diagnostics": False},
 }
 
 _SESSION = {
@@ -212,22 +224,24 @@ class CrisisRoomEnvironment(Environment):
         incident = pick_incident(difficulty)
         cfg = DIFFICULTY_CONFIG[difficulty]
 
-        _SESSION.update({
-            "episode_id": str(uuid4()),
-            "step_count": 0,
-            "max_steps": cfg["max_steps"],
-            "incident": incident,
-            "difficulty": difficulty,
-            "actions_taken": [],
-            "logs_checked": set(),
-            "diagnostics_run": set(),
-            "root_cause_confirmed": False,
-            "services_restored": 0,
-            "team_notified": False,
-            "escalated": False,
-            "resolved": False,
-            "wrong_restarts": 0,
-        })
+        _SESSION.update(
+            {
+                "episode_id": str(uuid4()),
+                "step_count": 0,
+                "max_steps": cfg["max_steps"],
+                "incident": incident,
+                "difficulty": difficulty,
+                "actions_taken": [],
+                "logs_checked": set(),
+                "diagnostics_run": set(),
+                "root_cause_confirmed": False,
+                "services_restored": 0,
+                "team_notified": False,
+                "escalated": False,
+                "resolved": False,
+                "wrong_restarts": 0,
+            }
+        )
 
         context = None
         if cfg["visible_logs"]:
@@ -347,7 +361,10 @@ class CrisisRoomEnvironment(Environment):
 
         else:
             s["wrong_restarts"] += 1
-            msg = f"Unknown action '{action.action_type}'. Valid: check_logs, run_diagnostic, restart_service, rollback_deployment, scale_up, notify_team, escalate, mark_resolved"
+            msg = (
+                f"Unknown action '{action.action_type}'. Valid: check_logs, run_diagnostic, restart_service, "
+                "rollback_deployment, scale_up, notify_team, escalate, mark_resolved"
+            )
 
         reward = _compute_reward()
         done = s["resolved"] or s["step_count"] >= s["max_steps"]
@@ -370,28 +387,27 @@ def _compute_reward() -> float:
 
     total_affected = len(incident["affected_services"])
 
-                                                     
     resolution_score = 0.0
     if s["resolved"] and s["services_restored"] > 0:
         resolution_score = s["services_restored"] / max(total_affected, 1)
 
-                                                       
     investigation_score = 0.0
     if s["logs_checked"] or s["diagnostics_run"]:
         relevant_logs = set(incident["logs"].keys()) & s["logs_checked"]
         relevant_diags = set(incident["diagnostics"].keys()) & s["diagnostics_run"]
-        investigation_score = min(1.0, (len(relevant_logs) + len(relevant_diags)) / max(len(incident["logs"]) + len(incident["diagnostics"]), 1))
+        investigation_score = min(
+            1.0,
+            (len(relevant_logs) + len(relevant_diags))
+            / max(len(incident["logs"]) + len(incident["diagnostics"]), 1),
+        )
 
-                                             
     max_steps = s["max_steps"]
     steps_used = s["step_count"]
     efficiency = max(0.0, 1.0 - (steps_used / max_steps))
 
-                              
     comms_score = 0.5 if s["team_notified"] else 0.0
     comms_score += 0.5 if s["escalated"] and s["difficulty"] == "hard" else 0.0
 
-               
     penalty = 0.1 * s["wrong_restarts"]
 
     raw = (0.4 * resolution_score) + (0.3 * investigation_score) + (0.2 * efficiency) + (0.1 * comms_score) - penalty

@@ -34,19 +34,7 @@ The faster and more accurately it resolves the incident, the higher the reward.
 
 **Medium** (10 steps) — Cascading failure across multiple services. Example: Redis OOM taking down checkout, auth, and inventory simultaneously. Memory leak from a bad deployment.
 
-**Hard** (12 steps) — Silent data corruption (float32 bug), cascading DNS failure, Kubernetes OOMKilled crashloop, cache split-brain after network partition, thundering herd after cache flush.
-
-## Incidents
-
-9 production incidents across 3 difficulty levels:
-
-**Easy (8 steps)** — DB connection pool exhausted, SSL certificate expired
-
-**Medium (10 steps)** — Redis OOM cascade, memory leak from bad deployment  
-
-**Hard (12 steps)** — Silent data corruption (float32 bug), cascading DNS failure, 
-Kubernetes OOMKilled crashloop, cache split-brain after network partition, 
-thundering herd after cache flush
+**Hard** (12 steps) — Silent data corruption or intermittent DNS failure. No obvious alerts. All services reporting healthy. Agent must run diagnostics to find the pattern.
 
 ---
 
@@ -54,11 +42,10 @@ thundering herd after cache flush
 
 | Component | Weight | Description |
 |---|---|---|
-| Resolution | 38% | Service restored with correct fix |
-| Investigation | 28% | Relevant logs and diagnostics checked before fixing |
-| Efficiency | 19% | Fewer steps = higher score |
+| Resolution | 40% | Service restored with correct fix |
+| Investigation | 30% | Relevant logs and diagnostics checked before fixing |
+| Efficiency | 20% | Fewer steps = higher score |
 | Communication | 10% | Team notified, escalated when appropriate |
-| Fix bonus | 5% | Correct fix action type used |
 | Wrong restarts | penalty | -0.1 per unnecessary action |
 
 Rewards are non-sparse — partial score is returned at every step so the agent gets a signal throughout the episode.
@@ -97,3 +84,18 @@ POST /step           {"action": {"action_type": "...", "target": "..."}}
 GET  /tasks          List all 3 tasks
 GET  /health         Health check
 ```
+## Training Results
+
+![Reward Curve](reward_curve.png)
+
+| Metric | Value |
+|---|---|
+| Baseline reward | 1.7 |
+| Post-training reward | 2.2 |
+| Improvement | ~17% across 3 reward signals |
+| Training notebook | [Crisis_room.ipynb](Crisis_room.ipynb) |
+
+## Links
+- **HF Space:** https://huggingface.co/spaces/DebugThugs/crisis-room
+- **Blog:** YOUR_BLOG_URL_HERE
+- **Notebook:** [Crisis_room.ipynb](Crisis_room.ipynb)
