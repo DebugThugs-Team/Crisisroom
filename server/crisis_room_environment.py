@@ -2,8 +2,14 @@ from uuid import uuid4
 import json
 import random
 
+import sys
+from pathlib import Path
+
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
+
+# Ensure repo root is ahead of ./server on sys.path so `models` resolves to the root models.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from models import IncidentAction, IncidentObservation
 
@@ -168,6 +174,93 @@ INCIDENTS = {
             "fix_target": "dns-resolver",
             "fix_hint": "Intermittent failures with no memory/CPU cause — must run dns_check diagnostic to find root cause.",
         },
+        {
+            "id": "k8s-crashloop",
+            "title": "Kubernetes pods crashlooping — all replicas failing",
+            "root_cause": "misconfigured_resource_limits_in_v4.2.0",
+            "affected_services": ["api-server", "worker-pods"],
+            "initial_alerts": [
+                "ALERT: api-server pod restart count > 50 in last 10 minutes",
+                "ALERT: worker-pods CrashLoopBackOff on all 8 replicas",
+            ],
+            "initial_status": {
+                "api-server": "down",
+                "worker-pods": "down",
+                "database": "healthy",
+                "load-balancer": "healthy",
+            },
+            "logs": {
+                "api-server": "ERROR: OOMKilled — container exceeded memory limit 512Mi\nERROR: Back-off restarting failed container\nINFO: deployed v4.2.0 at 08:45 UTC (memory limit changed from 2Gi to 512Mi)",
+                "worker-pods": "ERROR: OOMKilled — container exceeded memory limit 256Mi\nERROR: CrashLoopBackOff — restarting every 10s\nINFO: resource limits changed in v4.2.0 deployment manifest",
+                "database": "INFO: all systems normal",
+                "load-balancer": "WARN: upstream api-server unavailable, health checks failing",
+            },
+            "diagnostics": {
+                "memory": "api-server: limit 512Mi, usage peaks at 1.8Gi. worker-pods: limit 256Mi, usage peaks at 900Mi. Resource limits were reduced in v4.2.0 manifest — was 2Gi/1Gi previously.",
+                "cpu": "CPU normal across all nodes.",
+                "db_connections": "Normal.",
+            },
+            "fix_action": "rollback_deployment",
+            "fix_target": "api-server",
+            "fix_hint": "OOMKilled on both services after v4.2.0 — resource limits misconfigured. Rollback to restore previous limits.",
+        },
+        {
+            "id": "split-brain-cache",
+            "title": "Users seeing inconsistent data — some see old prices, some see new",
+            "root_cause": "cache_split_brain_after_network_partition",
+            "affected_services": ["cache-cluster"],
+            "initial_alerts": [
+                "ALERT: data consistency errors reported by 23% of users",
+                "ALERT: cache-cluster node-3 network latency 800ms to peers",
+            ],
+            "initial_status": {
+                "cache-cluster": "degraded",
+                "api-server": "healthy",
+                "database": "healthy",
+            },
+            "logs": {
+                "cache-cluster": "WARN: node-3 lost quorum with node-1 and node-2 at 14:23 UTC\nERROR: split-brain detected — node-3 accepting writes independently\nWARN: inconsistent keys detected: product_prices (3 versions), user_sessions (2 versions)",
+                "api-server": "WARN: cache reads returning inconsistent values for product_prices\nINFO: 23% of requests routed to node-3 via load balancer",
+                "database": "INFO: all systems normal — source of truth intact",
+            },
+            "diagnostics": {
+                "memory": "All cache nodes normal memory usage.",
+                "cpu": "node-3 CPU: 89%. node-1, node-2 CPU: normal.",
+                "data_integrity": "Cache split-brain confirmed. node-3 has 847 divergent keys vs node-1/node-2. Database is consistent. Removing node-3 from cluster will restore consistency.",
+            },
+            "fix_action": "restart_service",
+            "fix_target": "cache-cluster",
+            "fix_hint": "Split-brain in cache cluster. Run data_integrity diagnostic to confirm, then restart cache-cluster to force re-election and restore quorum.",
+        },
+        {
+            "id": "thundering-herd",
+            "title": "Database overwhelmed after cache restart — all services timing out",
+            "root_cause": "thundering_herd_after_cache_flush",
+            "affected_services": ["database", "api-server"],
+            "initial_alerts": [
+                "ALERT: database CPU 100% for 8 minutes",
+                "ALERT: api-server response time p99 > 30s",
+                "ALERT: cache-cluster restarted 12 minutes ago",
+            ],
+            "initial_status": {
+                "database": "degraded",
+                "api-server": "degraded",
+                "cache-cluster": "healthy",
+            },
+            "logs": {
+                "database": "ERROR: max_connections 500 reached — rejecting new connections\nERROR: query queue depth 2400 — severe overload\nWARN: cache-cluster restarted at 09:12 UTC, cache hit rate dropped from 94% to 0%",
+                "api-server": "ERROR: database connection timeout after 30s\nWARN: all requests bypassing empty cache, hitting database directly\nINFO: request rate normal at 1200 rps — but 100% hitting DB vs normal 6%",
+                "cache-cluster": "INFO: restarted successfully at 09:12 UTC\nINFO: warming up — cache hit rate currently 12% and rising",
+            },
+            "diagnostics": {
+                "memory": "Database memory: 94% (query cache full). Cache warming slowly.",
+                "cpu": "Database CPU: 100%. api-server CPU: 34%.",
+                "db_connections": "Active connections: 500/500 (maxed). Queue: 2400 waiting. Root cause: cache miss storm after restart — all traffic hitting DB simultaneously.",
+            },
+            "fix_action": "scale_up",
+            "fix_target": "database",
+            "fix_hint": "Thundering herd after cache flush — scale_up database to handle connection storm while cache warms up.",
+        },
     ],
 }
 
@@ -192,6 +285,11 @@ _SESSION = {
     "escalated": False,
     "resolved": False,
     "wrong_restarts": 0,
+    "episodes_completed": 0,
+    "easy_avg_reward": 0.0,
+    "medium_unlocked": True,
+    "hard_unlocked": True,
+    "incident_history": [],
 }
 
 
@@ -276,6 +374,9 @@ class CrisisRoomEnvironment(Environment):
                 s["logs_checked"].add(svc)
                 log_out = incident["logs"][svc]
                 msg = f"Logs for {svc} retrieved."
+                # Progressive hint after 5+ steps with no resolution
+                if s["step_count"] >= 5 and not s["root_cause_confirmed"]:
+                    log_out += f"\n\n[SYSTEM HINT] Steps used: {s['step_count']}/{s['max_steps']}. Fix type needed: {incident['fix_action']}."
             else:
                 log_out = f"No logs found for '{svc}'. Available: {list(incident['logs'].keys())}"
                 msg = "Service not found."
@@ -319,7 +420,12 @@ class CrisisRoomEnvironment(Environment):
 
         elif action.action_type == "scale_up":
             svc = action.target
-            msg = f"Scaled up {svc}. May reduce pressure but root cause not addressed."
+            if incident["fix_action"] == "scale_up" and incident["fix_target"] == svc:
+                s["services_restored"] += 1
+                s["resolved"] = True
+                msg = f"Scaled up {svc}. Pressure relieved — service restored."
+            else:
+                msg = f"Scaled up {svc}. May reduce pressure but root cause not addressed."
 
         elif action.action_type == "notify_team":
             if s["team_notified"]:
@@ -391,10 +497,29 @@ def _compute_reward() -> float:
     comms_score = 0.5 if s["team_notified"] else 0.0
     comms_score += 0.5 if s["escalated"] and s["difficulty"] == "hard" else 0.0
 
+    # 5% bonus — correct fix action type used
+    fix_bonus = 0.0
+    if s["resolved"] and s["services_restored"] > 0:
+        last_action = s["actions_taken"][-1] if s["actions_taken"] else ""
+        expected_fix = incident.get("fix_action", "")
+        if expected_fix in last_action:
+            fix_bonus = 0.05
+
                
     penalty = 0.1 * s["wrong_restarts"]
 
-    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + (0.2 * efficiency) + (0.1 * comms_score) - penalty
+    raw = (0.38 * resolution_score) + (0.28 * investigation_score) + (0.19 * efficiency) + (0.10 * comms_score) + fix_bonus - penalty
+
+    # Track episode history for curriculum
+    _SESSION["episodes_completed"] = _SESSION.get("episodes_completed", 0) + 1
+    history = _SESSION.get("incident_history", [])
+    history.append({
+        "difficulty": _SESSION.get("difficulty"),
+        "reward": round(max(0.0, min(1.0, raw)), 4),
+        "resolved": _SESSION.get("resolved", False),
+    })
+    _SESSION["incident_history"] = history[-50:]  # keep last 50
+
     return round(max(0.0, min(1.0, raw)), 4)
 
 

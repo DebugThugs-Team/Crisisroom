@@ -3,10 +3,16 @@ try:
 except Exception as e:
     raise ImportError("openenv is required. Install with: pip install openenv-core") from e
 
+import sys
+from pathlib import Path
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from uuid import uuid4
 import json
+
+# Ensure repo root is ahead of ./server on sys.path so `models` resolves to the root models.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from models import IncidentAction, IncidentObservation
 from crisis_room_environment import CrisisRoomEnvironment, _SESSION, pick_incident, DIFFICULTY_CONFIG
@@ -84,6 +90,26 @@ async def list_tasks():
             {"name": "medium-incident", "difficulty": "medium", "max_steps": 10, "description": "Cascading failure across multiple services"},
             {"name": "hard-incident", "difficulty": "hard", "max_steps": 12, "description": "Silent corruption or intermittent failure — no obvious alerts"},
         ]
+    })
+
+
+@app.get("/stats", include_in_schema=False)
+async def get_stats():
+    from crisis_room_environment import _SESSION
+    s = _SESSION
+    return JSONResponse(content={
+        "current_episode": s.get("episode_id"),
+        "difficulty": s.get("difficulty"),
+        "step_count": s.get("step_count"),
+        "max_steps": s.get("max_steps"),
+        "resolved": s.get("resolved"),
+        "services_restored": s.get("services_restored"),
+        "wrong_restarts": s.get("wrong_restarts"),
+        "root_cause_confirmed": s.get("root_cause_confirmed"),
+        "team_notified": s.get("team_notified"),
+        "current_score": s.get("step_count", 0) / max(s.get("max_steps", 1), 1),
+        "total_incidents_available": 9,
+        "difficulty_levels": ["easy", "medium", "hard"],
     })
 
 

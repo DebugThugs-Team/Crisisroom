@@ -1,0 +1,152 @@
+[
+  {
+    "id": "easy-db-index-drop",
+    "difficulty": "easy",
+    "incident_alert": {
+      "title": "Payment API elevated 5xx after deploy",
+      "error_rate": 0.43,
+      "latency_ms": 4200,
+      "traffic_drop_pct": 18,
+      "affected_services": ["payment-api"],
+      "last_deployment": {
+        "service": "payment-api",
+        "version": "v2.9.1",
+        "timestamp_utc": "2026-04-25T02:41:00Z",
+        "commit": "a4f2b1"
+      }
+    },
+    "specialist_responses": {
+      "database": "Payment-db shows sudden full table scans on transactions. The transaction_id index appears dropped in the last migration; query volume is normal but latency is huge.",
+      "network": "No packet loss or elevated retransmits. North-south traffic looks normal; not a network issue.",
+      "security": "No DDoS indicators. WAF and edge metrics are normal; no anomalous auth or bot spikes.",
+      "oncall": "Recent deployment on payment-api included a schema migration touching transactions. Rollback is a safe first move while we validate DB indexes."
+    },
+    "ground_truth_root_cause": "Dropped transaction_id index on payment-db during recent deployment causing full table scans and elevated latency/5xx.",
+    "ground_truth_fix_command": "rollback payment-api",
+    "correct_specialist": "database",
+    "irrelevant_specialists": ["security", "network"],
+    "stakeholder_update_frequency": 5,
+    "postmortem_keywords": ["root cause", "impact", "timeline", "action items", "rollback", "index"],
+    "red_herrings": ["brief traffic dip", "sporadic auth retries"]
+  },
+  {
+    "id": "easy-network-dns-flap",
+    "difficulty": "easy",
+    "incident_alert": {
+      "title": "API gateway intermittent NXDOMAIN to internal services",
+      "error_rate": 0.28,
+      "latency_ms": 1600,
+      "traffic_drop_pct": 5,
+      "affected_services": ["api-gateway", "dns-resolver"],
+      "last_deployment": {
+        "service": "dns-resolver",
+        "version": "coredns-1.11.1",
+        "timestamp_utc": "2026-04-25T10:58:00Z",
+        "commit": "c0d3d0"
+      }
+    },
+    "specialist_responses": {
+      "database": "DB metrics are stable. No connection spikes or query anomalies related to this incident.",
+      "network": "DNS resolver is returning NXDOMAIN for *.internal. Looks like a config issue after infra change; restarting resolver or rolling back config should help.",
+      "security": "No indicators of malicious traffic. DNS failures appear internal and correlate with config change.",
+      "oncall": "Gateway errors coincide with CoreDNS config rollout. Recommend restarting dns-resolver and validating forward zones."
+    },
+    "ground_truth_root_cause": "DNS resolver misconfiguration after infra change causing intermittent internal name resolution failures.",
+    "ground_truth_fix_command": "restart dns-resolver",
+    "correct_specialist": "network",
+    "irrelevant_specialists": ["database", "security"],
+    "stakeholder_update_frequency": 5,
+    "postmortem_keywords": ["root cause", "impact", "timeline", "action items", "dns"],
+    "red_herrings": ["minor latency spike on auth-service"]
+  },
+  {
+    "id": "medium-cache-oom-cascade",
+    "difficulty": "medium",
+    "incident_alert": {
+      "title": "Checkout latency and auth failures due to cache outage",
+      "error_rate": 0.19,
+      "latency_ms": 7800,
+      "traffic_drop_pct": 22,
+      "affected_services": ["checkout-service", "auth-service", "inventory-service", "redis-cluster"],
+      "last_deployment": {
+        "service": "redis-cluster",
+        "version": "redis-7.2.4",
+        "timestamp_utc": "2026-04-25T06:12:00Z",
+        "commit": "r3d150"
+      }
+    },
+    "specialist_responses": {
+      "database": "DB connections spiked due to cache bypass. DB is stressed but secondary; primary issue seems cache availability/memory.",
+      "network": "No infra network issues. Service-to-service connectivity is fine; failures are application-layer.",
+      "security": "No DDoS indicators. Symptoms match an internal dependency outage.",
+      "oncall": "Redis is OOM and refusing writes. Restarting redis-cluster and adjusting eviction policy/memory limit would mitigate quickly."
+    },
+    "ground_truth_root_cause": "Redis out-of-memory leading to cache outage and cascading load onto DB and dependent services.",
+    "ground_truth_fix_command": "restart redis-cluster",
+    "correct_specialist": "database",
+    "irrelevant_specialists": ["security"],
+    "stakeholder_update_frequency": 4,
+    "postmortem_keywords": ["root cause", "impact", "timeline", "action items", "cache", "oom"],
+    "red_herrings": ["brief network jitter reported by one host"]
+  },
+  {
+    "id": "medium-bad-deploy-memory-leak",
+    "difficulty": "medium",
+    "incident_alert": {
+      "title": "Order service memory leak after deployment",
+      "error_rate": 0.07,
+      "latency_ms": 2300,
+      "traffic_drop_pct": 9,
+      "affected_services": ["order-service"],
+      "last_deployment": {
+        "service": "order-service",
+        "version": "v2.4.1",
+        "timestamp_utc": "2026-04-25T14:32:00Z",
+        "commit": "1eak42"
+      }
+    },
+    "specialist_responses": {
+      "database": "DB is normal. Latency is coming from app GC/heap pressure; not DB-bound.",
+      "network": "Network is stable. No packet loss or routing changes.",
+      "security": "No indicators of compromise or traffic anomalies.",
+      "oncall": "Heap usage started climbing immediately after v2.4.1 deploy. Rollback to v2.4.0 should restore health."
+    },
+    "ground_truth_root_cause": "Memory leak introduced in order-service v2.4.1 causing GC pressure and increasing latency.",
+    "ground_truth_fix_command": "rollback order-service",
+    "correct_specialist": "database",
+    "irrelevant_specialists": ["security", "network"],
+    "stakeholder_update_frequency": 4,
+    "postmortem_keywords": ["root cause", "impact", "timeline", "action items", "memory leak", "rollback"],
+    "red_herrings": ["slight db cpu increase from retries"]
+  },
+  {
+    "id": "hard-silent-data-corruption",
+    "difficulty": "hard",
+    "incident_alert": {
+      "title": "Customer complaints: incorrect order totals, systems look healthy",
+      "error_rate": 0.00,
+      "latency_ms": 220,
+      "traffic_drop_pct": 0,
+      "affected_services": ["pricing-service"],
+      "last_deployment": {
+        "service": "pricing-service",
+        "version": "v3.1.0",
+        "timestamp_utc": "2026-04-25T09:15:00Z",
+        "commit": "f10a732"
+      }
+    },
+    "specialist_responses": {
+      "database": "DB metrics are normal. If totals are wrong, it’s likely application logic or numeric precision, not DB.",
+      "network": "No connectivity issues. Latency and packet loss are nominal.",
+      "security": "No signs of fraud or credential abuse. Complaints are consistent with a calculation bug.",
+      "oncall": "The v3.1.0 pricing deploy changed numeric types for performance. Suggest rollback and add data integrity checks."
+    },
+    "ground_truth_root_cause": "Floating point precision regression in pricing-service v3.1.0 causing silent rounding errors for high-priced items.",
+    "ground_truth_fix_command": "rollback pricing-service",
+    "correct_specialist": "security",
+    "irrelevant_specialists": ["network"],
+    "stakeholder_update_frequency": 3,
+    "postmortem_keywords": ["root cause", "impact", "timeline", "action items", "precision", "rollback"],
+    "red_herrings": ["no alerts firing", "services appear healthy"]
+  }
+]
