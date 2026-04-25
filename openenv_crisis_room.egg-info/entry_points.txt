@@ -1,2 +1,0 @@
-[console_scripts]
-server = crisis_room.server.app:main
