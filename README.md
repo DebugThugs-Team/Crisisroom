@@ -21,7 +21,7 @@ It's 2:47 AM. Payment service is down. Revenue bleeding at $300,000 per minute. 
 
 - 🚀 **Live Space:** https://huggingface.co/spaces/hemankkk/crisis_room
 - 📓 **Training Notebook:** https://colab.research.google.com/drive/1kVOpV5HhHOu865rXwitTBruOM76ilFNJ?usp=sharing
--- 💻 **GitHub:** https://github.com/DebugThugs-Team/Crisisroom
+- 💻 **GitHub:** https://github.com/DebugThugs-Team/Crisisroom
 - 📝 **Blog:** [blog.md](blog.md)
 - 📈 **Reward Curve:** See below
 
