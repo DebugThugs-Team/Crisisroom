@@ -44,3 +44,22 @@ class State(BaseModel):
     delegations: List[Dict[str, Any]] = Field(default_factory=list)  # {specialist, correct, payload}
     wrong_escalations: int = 0
     declared_resolved_text: str = ""
+
+
+# Compatibility exports for the FastAPI/OpenEnv environment implementation.
+# Some tooling/test setups put `server/` first on `PYTHONPATH`, which makes
+# `import models` resolve to `server/models.py`. Provide the expected symbols
+# (`IncidentAction`, `IncidentObservation`) by loading the repo-root `models.py`.
+try:  # pragma: no cover
+    from pathlib import Path
+    import importlib.util
+
+    _ROOT_MODELS_PATH = Path(__file__).resolve().parents[1] / "models.py"
+    _spec = importlib.util.spec_from_file_location("_crisis_room_root_models", str(_ROOT_MODELS_PATH))
+    if _spec and _spec.loader:  # type: ignore[truthy-bool]
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)  # type: ignore[attr-defined]
+        IncidentAction = _mod.IncidentAction  # type: ignore[attr-defined]
+        IncidentObservation = _mod.IncidentObservation  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover
+    pass

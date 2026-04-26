@@ -12,12 +12,10 @@ import json
 from pathlib import Path
 
 from models import IncidentAction, IncidentObservation
-from server.crisis_room_environment import (
-    CrisisRoomEnvironment,
-    DIFFICULTY_CONFIG,
-    _SESSION,
-    pick_incident,
-)
+try:
+    from crisis_room_environment import CrisisRoomEnvironment, _SESSION, pick_incident, DIFFICULTY_CONFIG
+except ImportError:
+    from server.crisis_room_environment import CrisisRoomEnvironment, _SESSION, pick_incident, DIFFICULTY_CONFIG
 
 app = create_app(
     CrisisRoomEnvironment,
@@ -102,6 +100,19 @@ async def list_tasks():
             {"name": "medium-incident", "difficulty": "medium", "max_steps": 10, "description": "Cascading failure across multiple services"},
             {"name": "hard-incident", "difficulty": "hard", "max_steps": 12, "description": "Silent corruption or intermittent failure — no obvious alerts"},
         ]
+    })
+
+
+@app.get("/stats", include_in_schema=False)
+async def stats():
+    return JSONResponse(content={
+        "episode_id": _SESSION.get("episode_id"),
+        "step_count": _SESSION.get("step_count", 0),
+        "max_steps": _SESSION.get("max_steps"),
+        "difficulty": _SESSION.get("difficulty"),
+        "resolved": _SESSION.get("resolved", False),
+        "services_restored": _SESSION.get("services_restored", 0),
+        "wrong_restarts": _SESSION.get("wrong_restarts", 0),
     })
 
 

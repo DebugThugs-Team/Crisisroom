@@ -342,9 +342,9 @@ class CrisisRoomEnvironment(Environment):
             if stated_cause == incident["root_cause"]:
                 s["root_cause_confirmed"] = True
                 s["services_restored"] = len(incident["affected_services"])
-            else:
-                s["wrong_restarts"] += 1
             s["resolved"] = True
+            if stated_cause != incident["root_cause"]:
+                s["wrong_restarts"] += 1
             msg = f"Marked resolved. Stated cause: {stated_cause}"
 
         else:
@@ -385,24 +385,20 @@ def _compute_reward() -> float:
         investigation_score = min(1.0, (len(relevant_logs) + len(relevant_diags)) / max(len(incident["logs"]) + len(incident["diagnostics"]), 1))
 
                                              
-    max_steps = s["max_steps"]
-    steps_used = s["step_count"]
-    efficiency = max(0.0, 1.0 - (steps_used / max_steps))
-
-                              
     comms_score = 0.5 if s["team_notified"] else 0.0
     comms_score += 0.5 if s["escalated"] and s["difficulty"] == "hard" else 0.0
+
+                                             
+    max_steps = s["max_steps"]
+    steps_used = s["step_count"]
+    # Only reward efficiency if real progress was made
+    real_progress = resolution_score > 0 or investigation_score > 0 or comms_score > 0
+    efficiency = max(0.0, 1.0 - (steps_used / max_steps)) if real_progress else 0.0
 
                
     penalty = 0.1 * s["wrong_restarts"]
 
-    # Don't allow the agent to earn reward purely by taking any action quickly.
-    # Efficiency should only amplify real progress (investigation/resolution/comms),
-    # otherwise it becomes a reward-hacking loophole.
-    made_progress = (resolution_score > 0.0) or (investigation_score > 0.0) or (comms_score > 0.0)
-    efficiency_term = (0.2 * efficiency) if made_progress else 0.0
-
-    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + efficiency_term + (0.1 * comms_score) - penalty
+    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + (0.2 * efficiency) + (0.1 * comms_score) - penalty
     return round(max(0.0, min(1.0, raw)), 4)
 
 

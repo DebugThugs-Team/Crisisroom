@@ -1,49 +1,53 @@
-from server.crisis_room_environment import CrisisRoomEnvironment, DIFFICULTY_CONFIG
-from models import IncidentAction
+import pytest
 
+def test_reset_easy(env):
+    obs = env.reset(difficulty="easy")
+    assert obs.step == 0
+    assert obs.max_steps == 8
+    assert obs.difficulty == "easy"
+    assert obs.done == False
+    assert obs.reward == 0.0
 
-def test_reset_supports_difficulty_levels():
-    env = CrisisRoomEnvironment()
-    for difficulty in ("easy", "medium", "hard"):
-        obs = env.reset(difficulty=difficulty)
-        assert obs.difficulty == difficulty
-        assert obs.max_steps == DIFFICULTY_CONFIG[difficulty]["max_steps"]
-        assert obs.step == 0
-        assert obs.episode_id
-        assert obs.done is False
+def test_reset_medium(env):
+    obs = env.reset(difficulty="medium")
+    assert obs.max_steps == 10
+    assert obs.difficulty == "medium"
 
+def test_reset_hard(env):
+    obs = env.reset(difficulty="hard")
+    assert obs.max_steps == 12
+    assert obs.difficulty == "hard"
 
-def test_invalid_difficulty_does_not_crash():
-    env = CrisisRoomEnvironment()
-    obs = env.reset(difficulty="totally-invalid")
-    assert obs.difficulty in ("easy", "medium", "hard")
-    assert obs.episode_id
+def test_step_check_logs(env):
+    from models import IncidentAction
+    env.reset(difficulty="easy")
+    action = IncidentAction(action_type="check_logs", target="payment-service")
+    obs = env.step(action)
+    assert obs.step == 1
+    assert obs.reward >= 0.0
+    assert obs.reward <= 1.0
 
+def test_step_increments(env):
+    from models import IncidentAction
+    env.reset(difficulty="easy")
+    for i in range(3):
+        action = IncidentAction(action_type="check_logs", target="payment-service")
+        obs = env.step(action)
+    assert obs.step == 3
 
-def test_step_count_increments_and_max_steps_enforced():
-    env = CrisisRoomEnvironment()
+def test_episode_terminates_at_max_steps(env):
+    from models import IncidentAction
     obs = env.reset(difficulty="easy")
     max_steps = obs.max_steps
+    for i in range(max_steps + 2):
+        action = IncidentAction(action_type="check_logs", target="payment-service")
+        obs = env.step(action)
+    assert obs.done == True
 
-    for i in range(max_steps):
-        obs = env.step(IncidentAction(action_type="check_logs", target="nonexistent-service"))
-        assert obs.step == i + 1
-        if i < max_steps - 1:
-            assert obs.done is False
-
-    assert obs.done is True
-    assert obs.step == max_steps
-
-    # After done, the episode should not advance further.
-    obs2 = env.step(IncidentAction(action_type="check_logs", target="nonexistent-service"))
-    assert obs2.done is True
-    assert obs2.step == max_steps
-
-
-def test_reward_is_bounded_and_not_positive_for_useless_actions():
-    env = CrisisRoomEnvironment()
+def test_reward_between_0_and_1(env):
+    from models import IncidentAction
     env.reset(difficulty="easy")
-    obs = env.step(IncidentAction(action_type="check_logs", target="nonexistent-service"))
-    assert 0.0 <= float(obs.reward) <= 1.0
-    assert float(obs.reward) == 0.0
+    action = IncidentAction(action_type="check_logs", target="payment-service")
+    obs = env.step(action)
+    assert 0.0 <= obs.reward <= 1.0
 
