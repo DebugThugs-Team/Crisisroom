@@ -4,9 +4,12 @@ except Exception as e:
     raise ImportError("openenv is required. Install with: pip install openenv-core") from e
 
 from fastapi import Request
+from fastapi.responses import FileResponse
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from uuid import uuid4
 import json
+from pathlib import Path
 
 from models import IncidentAction, IncidentObservation
 from crisis_room_environment import CrisisRoomEnvironment, _SESSION, pick_incident, DIFFICULTY_CONFIG
@@ -18,6 +21,16 @@ app = create_app(
     env_name="crisis_room",
     max_concurrent_envs=1,
 )
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_STATIC_DIR = _REPO_ROOT / "static"
+
+if _STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def serve_ui():
+        return FileResponse(str(_STATIC_DIR / "index.html"))
 
 
 @app.post("/reset", include_in_schema=False)

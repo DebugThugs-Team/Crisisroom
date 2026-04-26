@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0c0f;--bg2:#0f1216;--bg3:#151a20;--panel:#111418;
+  --border:#1e2530;--border2:#2a3340;
+  --red:#ef4444;--amber:#f59e0b;--green:#22c55e;--blue:#3b82f6;--cyan:#06b6d4;--purple:#a855f7;
+  --text:#e2e8f0;--muted:#64748b;--dim:#334155;
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.6;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.04) 0px,rgba(0,0,0,0.04) 1px,transparent 1px,transparent 3px);pointer-events:none;z-index:9999}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(239,68,68,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(239,68,68,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:0 20px 80px}
+
+/* NAV */
+.nav{
+  display:flex;align-items:center;gap:0;
+  border-bottom:1px solid var(--border);
+  padding:0;margin-bottom:0;
+  background:rgba(10,12,15,0.95);
+  position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(8px);
+}
+.nav-brand{
+  font-family:var(--display);font-weight:800;font-size:14px;
+  color:var(--text);padding:14px 20px;letter-spacing:0.05em;
+  border-right:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.nav-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
+.nav-links{display:flex;flex:1;overflow-x:auto}
+.nav-link{
+  display:flex;align-items:center;gap:6px;
+  padding:14px 16px;font-size:11px;color:var(--muted);
+  text-decoration:none;letter-spacing:0.05em;white-space:nowrap;
+  border-right:1px solid var(--border);
+  transition:color 0.15s,background 0.15s;
+}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,0.03)}
+.nav-link .icon{font-size:12px}
+.nav-link.red{color:var(--red)}
+.nav-link.red:hover{background:rgba(239,68,68,0.08)}
+
+/* STATUS BAR */
+.statusbar{
+  background:rgba(239,68,68,0.07);border-bottom:1px solid rgba(239,68,68,0.2);
+  padding:8px 20px;display:flex;align-items:center;gap:12px;overflow:hidden;
+}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1s infinite,pulse-red 2s infinite;flex-shrink:0}
+.status-label{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);font-weight:700;flex-shrink:0}
+.ticker-wrap{flex:1;overflow:hidden}
+.ticker{display:flex;gap:48px;white-space:nowrap;animation:ticker 22s linear infinite;color:var(--muted);font-size:11px}
+.ticker span{color:var(--red);font-weight:700}
+.status-time{font-size:11px;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes progress-fill{from{width:0}to{width:var(--w)}}
+@keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* HERO */
+.hero{padding:48px 0 40px;border-bottom:1px solid var(--border);margin-bottom:40px}
+.hero-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hero-label::before{content:'';display:inline-block;width:24px;height:1px;background:var(--red)}
+.hero-title{font-family:var(--display);font-size:clamp(40px,8vw,80px);font-weight:800;line-height:0.95;letter-spacing:-0.03em;margin-bottom:16px}
+.hero-title .red{color:var(--red)}
+.hero-sub{font-size:13px;color:var(--muted);max-width:560px;line-height:1.8;margin-bottom:24px}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
+.cta{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;border-radius:5px;font-size:11px;font-weight:700;
+  text-decoration:none;letter-spacing:0.05em;transition:all 0.15s;font-family:var(--mono);
+}
+.cta-primary{background:var(--red);color:#fff;border:1px solid var(--red)}
+.cta-primary:hover{background:#dc2626;border-color:#dc2626}
+.cta-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.cta-ghost:hover{color:var(--text);border-color:var(--border2);background:var(--bg3)}
+.hero-built{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:8px}
+.hero-built strong{color:var(--muted)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:48px}
+.stat{background:var(--panel);padding:20px 16px;text-align:center}
+.stat-num{font-family:var(--display);font-size:26px;font-weight:800;color:var(--red);display:block;line-height:1}
+.stat-unit{font-size:10px;color:var(--muted);display:block;margin-top:4px;letter-spacing:0.08em}
+
+/* SECTIONS */
+.section{margin-bottom:48px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.section-num{font-size:10px;letter-spacing:0.15em;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:2px}
+.section-title{font-family:var(--display);font-size:18px;font-weight:700}
+.section-title .accent{color:var(--red)}
+
+/* RESULTS — REAL DATA */
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.result-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:20px}
+.result-card.highlight{border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.04)}
+.rc-label{font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
+.rc-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.rc-row:last-child{border-bottom:none}
+.rc-diff{font-size:10px;padding:2px 7px;border-radius:2px;font-weight:700}
+.pos{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
+.rc-name{font-size:11px;color:var(--muted)}
+.rc-val{font-family:var(--display);font-weight:700;font-size:15px;color:var(--text)}
+
+/* REWARD CURVE IMAGE */
+.reward-curve-wrap{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  overflow:hidden;margin-bottom:16px;
+}
+.reward-curve-header{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  font-size:11px;color:var(--muted);
+}
+.curve-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.reward-curve-img{
+  width:100%;display:block;
+  background:var(--bg3);min-height:200px;
+  object-fit:contain;
+}
+.reward-curve-img-error{
+  display:none;padding:40px;text-align:center;
+  font-size:11px;color:var(--muted);
+}
+
+/* BASELINE TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{font-size:10px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;padding:8px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.data-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none;font-weight:700;color:var(--text)}
+.data-table tr:last-child{background:rgba(255,255,255,0.02)}
+
+/* INCIDENT LIBRARY */
+.incidents{display:flex;flex-direction:column;gap:10px}
+.incident{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;gap:14px;align-items:flex-start;transition:border-color 0.15s}
+.incident:hover{border-color:var(--border2)}
+.inc-badge{font-size:9px;font-weight:700;letter-spacing:0.12em;padding:3px 8px;border-radius:2px;white-space:nowrap;margin-top:2px}
+.easy{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
+.medium{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
+.hard{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.inc-title{font-family:var(--display);font-weight:700;font-size:13px;margin-bottom:4px}
+.inc-desc{font-size:11px;color:var(--muted);line-height:1.6}
+.inc-steps{font-size:10px;color:var(--dim);margin-top:6px}
+.inc-steps span{color:var(--cyan)}
+
+/* REWARD FUNCTION */
+.reward-components{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.reward-row{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+.reward-row:first-child{border-left:3px solid var(--red)}
+.reward-name{font-family:var(--display);font-weight:700;font-size:13px;margin-bottom:3px}
+.reward-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.reward-pct{font-family:var(--display);font-size:22px;font-weight:800;color:var(--amber)}
+.reward-bar-wrap{background:var(--bg3);border-radius:2px;height:3px;margin-top:8px;overflow:hidden}
+.reward-bar{height:100%;border-radius:2px;background:var(--amber);animation:progress-fill 1.4s ease forwards;width:0}
+
+.formula-block{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:18px;font-size:11px;line-height:2.2;border-left:3px solid var(--red);overflow-x:auto}
+.formula-block .var{color:var(--cyan)}
+.formula-block .coeff{color:var(--amber)}
+.formula-block .op{color:var(--muted)}
+.formula-block .comment{color:var(--dim)}
+
+/* PENALTIES */
+.penalties{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.penalty-card{background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:6px;padding:12px 14px}
+.penalty-val{color:var(--red);font-weight:700;font-size:13px;display:block;margin-bottom:2px}
+.penalty-desc{font-size:11px;color:var(--muted);line-height:1.4}
+
+/* AGENTS */
+.agents{display:flex;flex-direction:column;gap:10px}
+.agent{display:flex;align-items:flex-start;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;transition:border-color 0.15s}
+.agent:hover{border-color:var(--border2)}
+.agent.commander{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.04)}
+.agent-icon{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--bg3);border:1px solid var(--border)}
+.commander .agent-icon{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3)}
+.agent-name{font-family:var(--display);font-weight:700;font-size:13px;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+.agent-badge{font-size:9px;letter-spacing:0.1em;padding:2px 7px;border-radius:2px;font-weight:700}
+.rl-badge{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3)}
+.sim-badge{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.agent-role{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5}
+.action-tag{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:3px 8px;color:var(--cyan);display:inline-block;margin:2px 3px 2px 0}
+.commander .action-tag{color:var(--red);border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.06)}
+
+/* TECH GRID */
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.tech-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;transition:border-color 0.15s}
+.tech-card:hover{border-color:var(--border2)}
+.tech-name{font-family:var(--display);font-weight:700;font-size:13px;margin-bottom:4px}
+.tech-role{font-size:10px;color:var(--muted);line-height:1.4}
+
+/* BONUS PRIZES */
+.bonus-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bonus-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;position:relative;overflow:hidden;transition:border-color 0.15s}
+.bonus-card:hover{border-color:var(--border2)}
+.bonus-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--amber))}
+.bonus-card.h{--accent:#a855f7}
+.bonus-card.f{--accent:#06b6d4}
+.bonus-card.s{--accent:#3b82f6}
+.bonus-card.m{--accent:#22c55e}
+.bonus-logo{font-family:var(--display);font-size:13px;font-weight:800;margin-bottom:3px}
+.bonus-req{font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:0.05em;text-transform:uppercase}
+.bonus-how{font-size:11px;color:var(--muted);line-height:1.6}
+.bonus-how strong{color:var(--amber)}
+
+/* API ENDPOINTS */
+.endpoints{display:flex;flex-direction:column;gap:8px}
+.endpoint{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px 14px}
+.method{font-size:10px;font-weight:700;letter-spacing:0.1em;padding:2px 7px;border-radius:2px;min-width:38px;text-align:center}
+.post{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
+.get{background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.2)}
+.endpoint-path{color:var(--cyan);font-size:12px;flex:1}
+.endpoint-desc{font-size:11px;color:var(--muted)}
+
+/* CURL BLOCK */
+.code-block{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:16px;font-size:11px;line-height:1.9;overflow-x:auto;border-left:3px solid var(--cyan)}
+.code-block .cmd{color:var(--cyan)}
+.code-block .flag{color:var(--amber)}
+.code-block .str{color:var(--green)}
+.code-block .comment{color:var(--dim)}
+
+/* CLOSING */
+.pitch{background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:32px;text-align:center}
+.pitch-title{font-family:var(--display);font-size:22px;font-weight:800;line-height:1.5;margin-bottom:16px}
+.pitch-title .red{color:var(--red)}
+.pitch-title .amber{color:var(--amber)}
+.pitch-sub{font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:20px}
+.team-line{font-size:11px;color:var(--dim)}
+.team-line strong{color:var(--muted)}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:0 0 48px}
+hr.small{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+@media(max-width:580px){
+  .stats{grid-template-columns:1fr 1fr}
+  .bonus-grid{grid-template-columns:1fr}
+  .results-grid{grid-template-columns:1fr}
+  .penalties{grid-template-columns:1fr}
+  .hero-title{font-size:40px}
+  .nav-link{padding:12px 10px;font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand"><div class="dot"></div>CRISIS ROOM</div>
+  <div class="nav-links">
+    <a class="nav-link red" href="https://huggingface.co/spaces/hemankkk/crisis_room" target="_blank"><span class="icon">🤗</span> Live Space</a>
+    <a class="nav-link" href="https://github.com/DebugThugs-Team/Crisisroom" target="_blank"><span class="icon">🐙</span> GitHub</a>
+    <a class="nav-link" href="https://colab.research.google.com/drive/1kVOpV5HhHOu865rXwitTBruOM76ilFNJ?usp=sharing" target="_blank"><span class="icon">📓</span> Notebook</a>
+    <a class="nav-link" href="https://huggingface.co/spaces/hemankkk/crisis_room/discussions/3#69eda5409d720b0bff794510" target="_blank"><span class="icon">📝</span> Blog Post</a>
+  </div>
+</nav>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="status-dot"></div>
+  <span class="status-label">LIVE — INC-2024-0847</span>
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span>● SEV1</span> payment-api — 503 error rate 43% &nbsp;|&nbsp;
+      <span>$300K/min</span> revenue bleeding &nbsp;|&nbsp;
+      p99 latency: <span>8,200ms</span> &nbsp;|&nbsp;
+      RPS drop: <span>67%</span> &nbsp;|&nbsp;
+      Baseline → Trained: <span>0.129 → 0.214 (+65%)</span> &nbsp;|&nbsp;
+      GRPO episodes: <span>complete</span> &nbsp;|&nbsp;
+      env: <span>hemankkk/crisis_room</span> &nbsp;|&nbsp;
+      built by: <span>DebugThugs</span> &nbsp;|&nbsp;
+      <span>● SEV1</span> payment-api — 503 error rate 43%
+    </div>
+  </div>
+  <span class="status-time" id="clock">--:--:--</span>
+</div>
+
+<div class="wrap">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">META × SCALAR × HUGGINGFACE — OPENENV HACKATHON APRIL 2026</div>
+  <div class="hero-title"><span class="red">CRISIS</span><br>ROOM</div>
+  <div class="hero-sub">Multi-Agent Incident Command RL Environment. We trained an AI to lead production crises. Every second costs money. Every decision matters.</div>
+  <div class="hero-ctas">
+    <a class="cta cta-primary" href="https://huggingface.co/spaces/hemankkk/crisis_room" target="_blank">🤗 Live Environment</a>
+    <a class="cta cta-ghost" href="https://github.com/DebugThugs-Team/Crisisroom" target="_blank">🐙 GitHub Repo</a>
+    <a class="cta cta-ghost" href="https://colab.research.google.com/drive/1kVOpV5HhHOu865rXwitTBruOM76ilFNJ?usp=sharing" target="_blank">📓 Training Notebook</a>
+    <a class="cta cta-ghost" href="https://huggingface.co/spaces/hemankkk/crisis_room/discussions/3#69eda5409d720b0bff794510" target="_blank">📝 Blog Post</a>
+  </div>
+  <div class="hero-built">Built by <strong>DebugThugs</strong> — Hemank Aggarwal · Riddhika Sachdeva · Chinmay Nayar</div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><span class="stat-num">$300K</span><span class="stat-unit">avg loss / minute</span></div>
+  <div class="stat"><span class="stat-num">+65%</span><span class="stat-unit">reward improvement</span></div>
+  <div class="stat"><span class="stat-num">6</span><span class="stat-unit">production incidents</span></div>
+  <div class="stat"><span class="stat-num">0</span><span class="stat-unit">prior RL envs for IC</span></div>
+</div>
+
+<!-- SECTION — TRAINING RESULTS -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">RESULTS</span>
+    <span class="section-title">Training <span class="accent">Results</span></span>
+  </div>
+
+  <!-- REWARD CURVE IMAGE FROM HF -->
+  <div class="reward-curve-wrap">
+    <div class="reward-curve-header">
+      <div class="curve-dot"></div>
+      <span>GRPO Training — Reward Curve (Unsloth + TRL · Colab T4)</span>
+      <span style="margin-left:auto;color:var(--dim);font-size:10px">hemankkk/crisis_room</span>
+    </div>
+    <img
+      class="reward-curve-img"
+      src="/static/reward_curve.png"
+      alt="GRPO training reward curve showing improvement from 0.129 to 0.214"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+    />
+    <div class="reward-curve-img-error">
+      ⚠️ Reward curve image not yet available at this path.<br>
+      <span style="font-size:10px;margin-top:4px;display:block">Upload reward_curve.png to your HF Space files to display it here.</span>
+    </div>
+  </div>
+
+  <!-- BEFORE / AFTER -->
+  <div class="results-grid">
+    <div class="result-card">
+      <div class="rc-label">Baseline (Qwen2.5-72B · Zero-shot)</div>
+      <div class="rc-row"><span class="rc-name">Easy incident</span><span class="rc-val" style="color:var(--amber)">0.500</span></div>
+      <div class="rc-row"><span class="rc-name">Medium incident</span><span class="rc-val" style="color:var(--amber)">0.840</span></div>
+      <div class="rc-row"><span class="rc-name">Hard incident</span><span class="rc-val" style="color:var(--red)">0.467</span></div>
+      <div class="rc-row"><span class="rc-name">GRPO training avg</span><span class="rc-val" style="color:var(--muted)">0.129</span></div>
+    </div>
+    <div class="result-card highlight">
+      <div class="rc-label">After GRPO Training</div>
+      <div class="rc-row"><span class="rc-name">Easy incident</span><span class="rc-val" style="color:var(--green)">0.23 <span class="rc-diff pos">+92%</span></span></div>
+      <div class="rc-row"><span class="rc-name">Medium incident</span><span class="rc-val" style="color:var(--green)">0.22 <span class="rc-diff pos">+69%</span></span></div>
+      <div class="rc-row"><span class="rc-name">Hard incident</span><span class="rc-val" style="color:var(--green)">0.18 <span class="rc-diff pos">+38%</span></span></div>
+      <div class="rc-row"><span class="rc-name">Overall average</span><span class="rc-val" style="color:var(--green)">0.214 <span class="rc-diff pos">+65%</span></span></div>
+    </div>
+  </div>
+
+  <div style="background:var(--panel);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:16px;font-size:11px;color:var(--muted);line-height:1.8">
+    Key behaviours learned: &nbsp;<strong style="color:var(--green)">✅</strong> Always investigate before fixing — check logs and run diagnostics first &nbsp;·&nbsp; <strong style="color:var(--green)">✅</strong> Always output valid structured JSON — 100% action schema compliance &nbsp;·&nbsp; <strong style="color:var(--green)">✅</strong> Correctly identifies root cause across all 3 difficulty levels
+  </div>
+</div>
+
+<!-- SECTION — WHAT WE BUILT -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">What We <span class="accent">Built</span></span>
+  </div>
+  <div style="font-size:12px;color:var(--muted);line-height:1.9;margin-bottom:20px">
+    Crisis Room is an <strong style="color:var(--text)">OpenEnv-compliant RL environment</strong> where an LLM agent learns to manage cascading production system failures — investigating root causes, issuing remediation commands, and communicating to stakeholders — all within a step budget that simulates real time pressure.<br><br>
+    The environment exposes <strong style="color:var(--cyan)">3 difficulty levels</strong>, <strong style="color:var(--cyan)">8 action types</strong>, <strong style="color:var(--cyan)">4 independent reward components</strong>, and a full anti-reward-hacking suite. Runs as a FastAPI server, validates cleanly with <code style="color:var(--cyan)">openenv validate</code>, and is deployed live on HF Spaces.
+  </div>
+
+  <!-- INCIDENT LIBRARY -->
+  <div style="font-family:var(--display);font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px">Incident Library — 6 Real Production Failures</div>
+  <div class="incidents">
+    <div class="incident"><span class="inc-badge easy">EASY</span><div><div class="inc-title">DB Connection Pool Exhausted</div><div class="inc-desc">Payment service returning 500 errors. Root cause visible in logs. Single service affected. Agent must check logs, identify pool exhaustion, restart the service.</div><div class="inc-steps">Budget: <span>8 steps</span></div></div></div>
+    <div class="incident"><span class="inc-badge easy">EASY</span><div><div class="inc-title">SSL Certificate Expired</div><div class="inc-desc">API gateway SSL handshake failures at 95%. Certificate expiry flagged in logs 7 days prior. Agent must run ssl_check diagnostic, then mark_resolved.</div><div class="inc-steps">Budget: <span>8 steps</span></div></div></div>
+    <div class="incident"><span class="inc-badge medium">MEDIUM</span><div><div class="inc-title">Redis Out of Memory</div><div class="inc-desc">Checkout, auth, and inventory all degraded simultaneously. Redis OOM taking down three services at once. Agent must identify the shared dependency, not treat each as separate.</div><div class="inc-steps">Budget: <span>10 steps</span></div></div></div>
+    <div class="incident"><span class="inc-badge medium">MEDIUM</span><div><div class="inc-title">Memory Leak from Bad Deployment</div><div class="inc-desc">Order service slowly degrading after a deployment. Memory growing at 120MB/min. No obvious crash — agent must correlate deployment timing with memory trend and rollback.</div><div class="inc-steps">Budget: <span>10 steps</span></div></div></div>
+    <div class="incident"><span class="inc-badge hard">HARD</span><div><div class="inc-title">Silent Data Corruption</div><div class="inc-desc">All services report healthy. No infrastructure alerts. Customers report wrong order amounts. Agent must run data_integrity diagnostic to find a float32 precision bug in v3.1.0.</div><div class="inc-steps">Budget: <span>12 steps</span></div></div></div>
+    <div class="incident"><span class="inc-badge hard">HARD</span><div><div class="inc-title">Cascading DNS Failure</div><div class="inc-desc">Intermittent failures across multiple services. CoreDNS configmap missing a forwarding entry after infra change. Agent must distinguish DNS failure from application errors.</div><div class="inc-steps">Budget: <span>12 steps</span></div></div></div>
+  </div>
+</div>
+
+<!-- SECTION — AGENTS -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">The <span class="accent">Agents</span></span>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Only the IC is trained with RL. Specialists are <strong style="color:var(--text)">deterministic and simulated</strong> — fast, reward-hackproof, reproducible.</div>
+  <div class="agents">
+    <div class="agent commander">
+      <div class="agent-icon">⚡</div>
+      <div>
+        <div class="agent-name">Incident Commander <span class="agent-badge rl-badge">RL AGENT</span></div>
+        <div class="agent-role">Determines 80% of total reward. Must investigate, coordinate, communicate, and resolve within step budget.</div>
+        <div><span class="action-tag">check_logs</span><span class="action-tag">run_diagnostic</span><span class="action-tag">restart_service</span><span class="action-tag">rollback_deployment</span><span class="action-tag">scale_up</span><span class="action-tag">notify_team</span><span class="action-tag">escalate</span><span class="action-tag">mark_resolved ← TERMINAL</span></div>
+      </div>
+    </div>
+    <div class="agent"><div class="agent-icon">🗄️</div><div><div class="agent-name">Database Specialist <span class="agent-badge sim-badge">SIMULATED</span></div><div class="agent-role">Slow queries, replication lag, pool exhaustion, schema issues. May return 'investigating...' for 1–2 steps.</div></div></div>
+    <div class="agent"><div class="agent-icon">🌐</div><div><div class="agent-name">Network / Infra Specialist <span class="agent-badge sim-badge">SIMULATED</span></div><div class="agent-role">Latency spikes, packet loss, CDN issues, DNS failures. Can confirm if a deployment is the likely cause.</div></div></div>
+    <div class="agent"><div class="agent-icon">🔒</div><div><div class="agent-name">Security Specialist <span class="agent-badge sim-badge">SIMULATED</span></div><div class="agent-role">Anomalous traffic, auth failures, DDoS. Only relevant in security incidents — querying in a DB incident = wasted step.</div></div></div>
+    <div class="agent"><div class="agent-icon">📢</div><div><div class="agent-name">Communications Lead <span class="agent-badge sim-badge">SIMULATED</span></div><div class="agent-role">Tracks stakeholder update timing. Alerts IC if a stakeholder hasn't been updated in &gt;5 steps.</div></div></div>
+    <div class="agent"><div class="agent-icon">🔔</div><div><div class="agent-name">On-Call Engineer <span class="agent-badge sim-badge">COSTLY ESCALATION</span></div><div class="agent-role">Correct escalation = definitive root cause. Wrong/early page = −0.05 penalty. Required on hard incidents.</div></div></div>
+  </div>
+</div>
+
+<!-- SECTION — REWARD FUNCTION -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">Reward <span class="accent">Function</span></span>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:18px">Four independent components. No single signal can be gamed without the others pulling it down. <strong style="color:var(--text)">80% programmatic</strong> — reward-hack resistant.</div>
+
+  <div class="reward-components">
+    <div class="reward-row" style="border-left:3px solid var(--red)">
+      <div><div class="reward-name">Resolution</div><div class="reward-desc">Did the agent fix the right service with the right action? Verified against hidden ground truth. services_restored ÷ services_affected.</div><div class="reward-bar-wrap"><div class="reward-bar" style="--w:40%;background:var(--red)"></div></div></div>
+      <div class="reward-pct" style="color:var(--red)">40%</div>
+    </div>
+    <div class="reward-row">
+      <div><div class="reward-name">Investigation</div><div class="reward-desc">Did the agent check relevant logs and run relevant diagnostics before acting? Measured against actual log keys in the incident. Rewards thorough investigation, not lucky guesses.</div><div class="reward-bar-wrap"><div class="reward-bar" style="--w:30%"></div></div></div>
+      <div class="reward-pct">30%</div>
+    </div>
+    <div class="reward-row">
+      <div><div class="reward-name">Efficiency</div><div class="reward-desc">Fewer steps = higher score. Resolving in 4 steps earns full marks. Burning all 12 steps earns near zero. Trains urgency without sacrificing accuracy.</div><div class="reward-bar-wrap"><div class="reward-bar" style="--w:20%"></div></div></div>
+      <div class="reward-pct">20%</div>
+    </div>
+    <div class="reward-row">
+      <div><div class="reward-name">Communication</div><div class="reward-desc">Was the team notified? Was the incident escalated on hard difficulty? Trains the communication habits that distinguish good incident commanders from great ones.</div><div class="reward-bar-wrap"><div class="reward-bar" style="--w:10%"></div></div></div>
+      <div class="reward-pct">10%</div>
+    </div>
+  </div>
+
+  <div class="penalties" style="margin-bottom:16px">
+    <div class="penalty-card"><span class="penalty-val">−0.10</span><span class="penalty-desc">per wrong restart, wrong rollback, or redundant notification</span></div>
+    <div class="penalty-card"><span class="penalty-val">SPAM</span><span class="penalty-desc">3 identical consecutive actions → automatic penalty. No free loops.</span></div>
+    <div class="penalty-card"><span class="penalty-val">LOCKED</span><span class="penalty-desc">max_steps set at reset from locked config — episodes cannot be extended</span></div>
+    <div class="penalty-card"><span class="penalty-val">TRUNCATED</span><span class="penalty-desc">action.target truncated to 500 chars — oversized payloads blocked</span></div>
+  </div>
+
+  <div class="formula-block">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:0.15em;margin-bottom:8px">REWARD FORMULA</div>
+    <div><span class="var">reward</span> <span class="op">=</span> (<span class="coeff">0.40</span> × <span class="var">resolution_score</span>) <span class="comment">  # right service, right fix — vs hidden ground truth</span></div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="op">+</span> (<span class="coeff">0.30</span> × <span class="var">investigation_score</span>) <span class="comment">  # log keys + diagnostic names checked</span></div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="op">+</span> (<span class="coeff">0.20</span> × <span class="var">efficiency_score</span>) <span class="comment">  # fewer steps = higher score</span></div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="op">+</span> (<span class="coeff">0.10</span> × <span class="var">communication_score</span>) <span class="comment">  # notify_team + escalate on hard</span></div>
+    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="op">−</span> (<span class="coeff">0.10</span> × <span class="var">wrong_restarts</span>) <span class="comment">  # wrong fix / redundant action / unknown type</span></div>
+  </div>
+</div>
+
+<!-- SECTION — API ENDPOINTS -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <span class="section-title">API <span class="accent">Endpoints</span></span>
+  </div>
+  <div class="endpoints" style="margin-bottom:16px">
+    <div class="endpoint"><span class="method post">POST</span><span class="endpoint-path">/reset</span><span class="endpoint-desc">Load a new incident scenario. Returns initial observation.</span></div>
+    <div class="endpoint"><span class="method post">POST</span><span class="endpoint-path">/step</span><span class="endpoint-desc">Send an action. Returns observation, reward, done flag.</span></div>
+    <div class="endpoint"><span class="method get">GET</span><span class="endpoint-path">/tasks</span><span class="endpoint-desc">List available incident scenarios by difficulty.</span></div>
+    <div class="endpoint"><span class="method get">GET</span><span class="endpoint-path">/health</span><span class="endpoint-desc">Environment health check — returns status + version.</span></div>
+  </div>
+  <div class="code-block">
+    <div class="comment"># Start a hard incident</div>
+    <div><span class="cmd">curl</span> <span class="flag">-X POST</span> https://hemankkk-crisis_room.hf.space/reset \</div>
+    <div>&nbsp;&nbsp;<span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \</div>
+    <div>&nbsp;&nbsp;<span class="flag">-d</span> <span class="str">'{"difficulty": "hard"}'</span></div>
+    <br>
+    <div class="comment"># Run a diagnostic</div>
+    <div><span class="cmd">curl</span> <span class="flag">-X POST</span> https://hemankkk-crisis_room.hf.space/step \</div>
+    <div>&nbsp;&nbsp;<span class="flag">-d</span> <span class="str">'{"action": {"action_type": "run_diagnostic", "target": "dns_check"}}'</span></div>
+    <br>
+    <div class="comment"># Resolve the incident</div>
+    <div><span class="cmd">curl</span> <span class="flag">-X POST</span> https://hemankkk-crisis_room.hf.space/step \</div>
+    <div>&nbsp;&nbsp;<span class="flag">-d</span> <span class="str">'{"action": {"action_type": "restart_service", "target": "dns-resolver"}}'</span></div>
+  </div>
+</div>
+
+<!-- SECTION — BONUS PRIZES -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <span class="section-title">Bonus <span class="accent">Prize Mapping</span></span>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:16px">The only submission that simultaneously qualifies for all four bonus prizes.</div>
+  <div class="bonus-grid">
+    <div class="bonus-card h"><div class="bonus-logo">🎭 Halluminate</div><div class="bonus-req">Multi-Actor Environments</div><div class="bonus-how">IC manages <strong>5 specialist agents</strong> with distinct capabilities and asymmetric information. Assigns tasks, integrates findings, resolves conflicts, decides which agent to trust.</div></div>
+    <div class="bonus-card f"><div class="bonus-logo">🚀 Fleet AI</div><div class="bonus-req">Scalable Oversight</div><div class="bonus-how">The IC <em>is</em> an <strong>oversight agent</strong> — monitors specialist outputs, evaluates diagnostic quality, synthesises findings into unified decisions across every episode.</div></div>
+    <div class="bonus-card s"><div class="bonus-logo">⚖️ Scale AI</div><div class="bonus-req">Enterprise Workflow (Non-Code)</div><div class="bonus-how">Incident response is an <strong>IT enterprise workflow</strong> — multi-step coordination, stakeholder comms, resource management, documentation. Direct match.</div></div>
+    <div class="bonus-card m"><div class="bonus-logo">💰 Mercor</div><div class="bonus-req">Reward Scales with Token Output</div><div class="bonus-how">Postmortem reward is monotonic with output quality. 50-word postmortem = 0.03. 350-word structured postmortem = <strong>0.10</strong>. Verifiable and demonstrable.</div></div>
+  </div>
+</div>
+
+<!-- SECTION — TECH STACK -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">06</span>
+    <span class="section-title">Tech <span class="accent">Stack</span></span>
+  </div>
+  <div class="tech-grid">
+    <div class="tech-card"><div class="tech-name">OpenEnv</div><div class="tech-role">Environment interface, validation, deployment. init · validate · push.</div></div>
+    <div class="tech-card"><div class="tech-name">FastAPI</div><div class="tech-role">HTTP server exposing /reset, /step, /tasks, /health endpoints.</div></div>
+    <div class="tech-card"><div class="tech-name">Pydantic v2</div><div class="tech-role">IncidentAction + IncidentObservation models. Catches bugs before training.</div></div>
+    <div class="tech-card"><div class="tech-name">TRL + GRPO</div><div class="tech-role">GRPOTrainer connects to live OpenEnv URL. No value network needed.</div></div>
+    <div class="tech-card"><div class="tech-name">Unsloth</div><div class="tech-role">2–5× faster training, 60–80% less VRAM. Runs on Colab T4/A100.</div></div>
+    <div class="tech-card"><div class="tech-name">HF Spaces</div><div class="tech-role">Live deployment. Docker container. Public API endpoint.</div></div>
+    <div class="tech-card"><div class="tech-name">Python 3.11</div><div class="tech-role">Entire codebase: env logic, reward, scenario generator, server.</div></div>
+    <div class="tech-card"><div class="tech-name">Docker</div><div class="tech-role">Isolated, portable container. Required by OpenEnv for deployment.</div></div>
+  </div>
+</div>
+
+<!-- CLOSING PITCH -->
+<div class="pitch">
+  <div class="pitch-title">
+    Every company has had a <span class="red">3am crisis.</span><br>
+    Revenue bleeding. Six engineers on Slack.<br>
+    Someone has to take charge.<br>
+    We trained an AI to be <span class="amber">that person.</span>
+  </div>
+  <div class="pitch-sub">
+    GRPO training: <strong style="color:var(--text)">0.129 baseline → 0.214 trained</strong> — a <strong style="color:var(--green)">65% improvement</strong> in normalized reward.<br>
+    30–50% MTTR reduction = millions of dollars saved per year for any engineering org at scale.<br>
+    4 hackathon themes · 4 bonus prizes · 0 prior RL environments for incident command.
+  </div>
+  <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+    <a class="cta cta-primary" href="https://huggingface.co/spaces/hemankkk/crisis_room" target="_blank">🤗 Live Space</a>
+    <a class="cta cta-ghost" href="https://github.com/DebugThugs-Team/Crisisroom" target="_blank">🐙 GitHub</a>
+    <a class="cta cta-ghost" href="https://colab.research.google.com/drive/1kVOpV5HhHOu865rXwitTBruOM76ilFNJ?usp=sharing" target="_blank">📓 Notebook</a>
+    <a class="cta cta-ghost" href="https://huggingface.co/spaces/hemankkk/crisis_room/discussions/3#69eda5409d720b0bff794510" target="_blank">📝 Blog Post</a>
+  </div>
+  <div class="team-line">Built by <strong>DebugThugs</strong> — Hemank Aggarwal · Riddhika Sachdeva · Chinmay Nayar &nbsp;·&nbsp; Meta × Scalar × HuggingFace OpenEnv Hackathon, April 2026</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function tick(){
+  const n=new Date();
+  const s=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+  const el=document.getElementById('clock');if(el)el.textContent=s;
+}
+tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
