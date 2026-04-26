@@ -113,3 +113,36 @@ openenv validate
 ---
 
 ## API
+
+```bash
+# Reset environment
+curl -X POST https://hemankkk-crisis-room.hf.space/reset \
+  -H "Content-Type: application/json" \
+  -d '{"difficulty": "easy"}'
+
+# Take a step
+curl -X POST https://hemankkk-crisis-room.hf.space/step \
+  -H "Content-Type: application/json" \
+  -d '{"action": {"action_type": "check_logs", "target": "payment-service"}}'
+
+# List all tasks
+curl https://hemankkk-crisis-room.hf.space/tasks
+
+# Health check
+curl https://hemankkk-crisis-room.hf.space/health
+
+# Episode stats
+curl https://hemankkk-crisis-room.hf.space/stats
+```
+
+### Available Actions
+| Action | Description |
+|---|---|
+| `check_logs` | Read logs for a specific service |
+| `run_diagnostic` | Run a diagnostic (memory, cpu, dns_check, data_integrity, ssl_check) |
+| `restart_service` | Restart a service |
+| `rollback_deployment` | Roll back to previous version |
+| `scale_up` | Add more instances |
+| `notify_team` | Send team notification |
+| `escalate` | Escalate to on-call lead |
+| `mark_resolved` | Close the incident with root cause |
