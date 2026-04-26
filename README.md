@@ -11,91 +11,105 @@ license: mit
 # Crisis Room — Production Incident Response RL Environment
 
 > Built for the Meta × Scalar × HuggingFace OpenEnv Hackathon, April 2026
+> Team: DebugThugs — Hemank Aggarwal, Riddhika Sachdeva, Chinmay Nayar
 
-Every engineer knows the feeling. It's 3am. PagerDuty fires. Five services are down. Revenue is bleeding. You have logs, alerts, and ten minutes to figure out what broke.
-
-Crisis Room is an RL environment where an agent learns to be that engineer — reading alerts, checking logs, running diagnostics, and restoring service as fast as possible.
+It's 2:47 AM. Payment service is down. Revenue bleeding at $300,000 per minute. Six engineers on Slack. Someone has to take charge. No AI in the world is trained to do that job. We built the environment to train one.
 
 ---
 
-## What the agent does
+## Submission Links
 
-The agent receives a live incident: active alerts, service statuses, and an environment message. It must investigate the root cause and fix it within a step budget. Eight actions are available:
+- 🚀 **Live Space:** https://huggingface.co/spaces/hemankkk/crisis_room
+- 📓 **Training Notebook:** https://colab.research.google.com/drive/1kVOpV5HhHOu865rXwitTBruOM76ilFNJ?usp=sharing
+-- 💻 **GitHub:** https://github.com/DebugThugs-Team/Crisisroom
+- 📝 **Blog:** [blog.md](blog.md)
+- 📈 **Reward Curve:** See below
+
+---
+
+## Training Results
+
+![Training Results](reward_curve.png)
+
+| Difficulty | Before Training | After Training | Improvement |
+|---|---|---|---|
+| Easy | 0.12 | 0.23 | +92% |
+| Medium | 0.13 | 0.22 | +69% |
+| Hard | 0.13 | 0.18 | +38% |
+| **Average** | **0.13** | **0.21** | **+65%** |
+
+Trained using GRPO with Unsloth on live HuggingFace Space environment.
+Baseline: 0.129 → Trained: 0.214 (+65.1% improvement)
+
+---
+
+## What the Agent Does
+
+The agent receives a live incident — active alerts, service statuses, log outputs — and must investigate root cause and fix it within a step budget. Eight actions available:
 
 `check_logs` · `run_diagnostic` · `restart_service` · `rollback_deployment` · `scale_up` · `notify_team` · `escalate` · `mark_resolved`
 
-The faster and more accurately it resolves the incident, the higher the reward.
+---
+
+## Three Difficulty Levels
+
+**Easy (8 steps)** — Single service down, root cause visible in logs. DB connection pool exhausted, SSL certificate expired.
+
+**Medium (10 steps)** — Cascading failure across multiple services. Redis OOM cascade, memory leak from bad deployment.
+
+**Hard (12 steps)** — Silent data corruption, cascading DNS failure, Kubernetes OOMKilled crashloop, cache split-brain, thundering herd after cache flush.
 
 ---
 
-## Three difficulty levels
+## Reward Function
 
-**Easy** (8 steps) — Single service down, root cause visible in logs. Example: DB connection pool exhausted, SSL certificate expired.
-
-**Medium** (10 steps) — Cascading failure across multiple services. Example: Redis OOM taking down checkout, auth, and inventory simultaneously. Memory leak from a bad deployment.
-
-**Hard** (12 steps) — Silent data corruption or intermittent DNS failure. No obvious alerts. All services reporting healthy. Agent must run diagnostics to find the pattern.
-
----
-
-## Reward function
+Five independent components — no single signal can be gamed:
 
 | Component | Weight | Description |
 |---|---|---|
-| Resolution | 40% | Service restored with correct fix |
-| Investigation | 30% | Relevant logs and diagnostics checked before fixing |
-| Efficiency | 20% | Fewer steps = higher score |
+| Resolution | 38% | Correct fix verified against hidden ground truth |
+| Investigation | 28% | Relevant logs and diagnostics checked before fixing |
+| Efficiency | 19% | Fewer steps = higher score |
 | Communication | 10% | Team notified, escalated when appropriate |
-| Wrong restarts | penalty | -0.1 per unnecessary action |
-
+| Fix bonus | 5% | Correct fix action type used |
+| Wrong restarts | penalty | -0.1 per unnecessary or redundant action |
+ 
 Rewards are non-sparse — partial score is returned at every step so the agent gets a signal throughout the episode.
 
 ---
 
-## Baseline scores (Qwen/Qwen2.5-72B-Instruct, zero fine-tuning)
+## Reward Hacking Protection
 
-| Task | Score |
-|---|---|
-| easy-incident | 0.500 |
-| medium-incident | 0.840 |
-| hard-incident | 0.467 |
-| **Average** | **0.602** |
-
-*Post fine-tuning scores (GRPO, on-site training) — to be updated at hackathon*
+- Step limit locked at reset — no action can modify it
+- Resolution verified against hidden ground truth
+- Redundant notify/escalate penalised
+- Spam detection — 3 identical consecutive actions trigger penalty
+- Unknown action penalty
+- Input length capped at 500 characters
+- Investigation score computed against actual log keys
 
 ---
 
-## Running locally
+## Running Locally
 
 ```bash
-# Start the server
 cd server
 PYTHONPATH=/path/to/crisis_room uvicorn app:app --host 0.0.0.0 --port 8000
-
-# Run inference
-HF_TOKEN=your_token python3 inference.py
 ```
+
+**Test it:**
+```bash
+curl -X POST http://localhost:8000/reset \
+  -H "Content-Type: application/json" \
+  -d '{"difficulty": "hard"}'
+```
+
+**Validate:**
+```bash
+openenv validate
+# [OK] crisis_room: Ready for multi-mode deployment
+```
+
+---
 
 ## API
-
-```
-POST /reset          {"difficulty": "easy"|"medium"|"hard"}
-POST /step           {"action": {"action_type": "...", "target": "..."}}
-GET  /tasks          List all 3 tasks
-GET  /health         Health check
-```
-## Training Results
-
-![Reward Curve](reward_curve.png)
-
-| Metric | Value |
-|---|---|
-| Baseline reward | 1.7 |
-| Post-training reward | 2.2 |
-| Improvement | ~17% across 3 reward signals |
-| Training notebook | [Crisis_room.ipynb](Crisis_room.ipynb) |
-
-## Links
-- **HF Space:** https://huggingface.co/spaces/DebugThugs/crisis-room
-- **Blog:** YOUR_BLOG_URL_HERE
-- **Notebook:** [Crisis_room.ipynb](Crisis_room.ipynb)

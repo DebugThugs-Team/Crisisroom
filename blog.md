@@ -36,7 +36,7 @@ Crisis Room is an OpenEnv-compliant reinforcement learning environment where an 
 
 The environment exposes three incident difficulty levels, eight agent action types, four independent reward components, and a full anti-reward-hacking suite. It runs as a FastAPI server, validates cleanly with `openenv validate`, and is deployed live on Hugging Face Spaces.
 
-**Live environment:** [https://huggingface.co/spaces/DebugThugs/crisis-room](https://huggingface.co/spaces/DebugThugs/crisis-room)
+**Live environment:** [https://huggingface.co/spaces/hemankkk/crisis_room](https://huggingface.co/spaces/hemankkk/crisis_room)
 
 ---
 
@@ -240,4 +240,4 @@ Crisis Room is the first environment purpose-built to do exactly that.
 
 *Built by DebugThugs — Hemank Aggarwal, Riddhika Sachdeva, Chinmay Nayar*
 *Meta × Scalar × HuggingFace OpenEnv Hackathon, April 2026*
-*Environment: [https://huggingface.co/spaces/DebugThugs/crisis-room](https://huggingface.co/spaces/DebugThugs/crisis-room)*
+*Environment: [https://huggingface.co/spaces/hemankkk/crisis_room](https://huggingface.co/spaces/hemankkk/crisis_room)*
