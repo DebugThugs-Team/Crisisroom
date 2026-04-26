@@ -12,7 +12,12 @@ import json
 from pathlib import Path
 
 from models import IncidentAction, IncidentObservation
-from crisis_room_environment import CrisisRoomEnvironment, _SESSION, pick_incident, DIFFICULTY_CONFIG
+from server.crisis_room_environment import (
+    CrisisRoomEnvironment,
+    DIFFICULTY_CONFIG,
+    _SESSION,
+    pick_incident,
+)
 
 app = create_app(
     CrisisRoomEnvironment,

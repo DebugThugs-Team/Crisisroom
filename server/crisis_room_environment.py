@@ -342,6 +342,8 @@ class CrisisRoomEnvironment(Environment):
             if stated_cause == incident["root_cause"]:
                 s["root_cause_confirmed"] = True
                 s["services_restored"] = len(incident["affected_services"])
+            else:
+                s["wrong_restarts"] += 1
             s["resolved"] = True
             msg = f"Marked resolved. Stated cause: {stated_cause}"
 
@@ -394,7 +396,13 @@ def _compute_reward() -> float:
                
     penalty = 0.1 * s["wrong_restarts"]
 
-    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + (0.2 * efficiency) + (0.1 * comms_score) - penalty
+    # Don't allow the agent to earn reward purely by taking any action quickly.
+    # Efficiency should only amplify real progress (investigation/resolution/comms),
+    # otherwise it becomes a reward-hacking loophole.
+    made_progress = (resolution_score > 0.0) or (investigation_score > 0.0) or (comms_score > 0.0)
+    efficiency_term = (0.2 * efficiency) if made_progress else 0.0
+
+    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + efficiency_term + (0.1 * comms_score) - penalty
     return round(max(0.0, min(1.0, raw)), 4)
 
 

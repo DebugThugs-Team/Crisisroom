@@ -22,3 +22,8 @@ ENV/
 
 # local tooling binaries
 .bin/
+
+# generated QA artifacts
+test_results.json
+judge_summary.txt
+reward_hacking_report.json

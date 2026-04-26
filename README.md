@@ -93,13 +93,17 @@ Rewards are non-sparse — partial score is returned at every step so the agent 
 ## Running Locally
 
 ```bash
-cd server
-PYTHONPATH=/path/to/crisis_room uvicorn app:app --host 0.0.0.0 --port 8000
+# Recommended: use a virtualenv for local dev/testing
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# Run the FastAPI app (serves UI at / and API at /reset, /step, etc.)
+.venv/bin/uvicorn app:app --host 0.0.0.0 --port 7860
 ```
 
 **Test it:**
 ```bash
-curl -X POST http://localhost:8000/reset \
+curl -X POST http://localhost:7860/reset \
   -H "Content-Type: application/json" \
   -d '{"difficulty": "hard"}'
 ```
@@ -134,6 +138,38 @@ curl https://hemankkk-crisis-room.hf.space/health
 # Episode stats
 curl https://hemankkk-crisis-room.hf.space/stats
 ```
+
+---
+
+## Reproducibility & Tests
+
+Run the automated test suite:
+
+```bash
+.venv/bin/pytest -q
+```
+
+Run stress testing (writes `test_results.json` and `judge_summary.txt`):
+
+```bash
+CRISIS_ROOM_BASE_URL=http://127.0.0.1:7860 CRISIS_ROOM_EPISODES=100 .venv/bin/python scripts/stress_test.py
+```
+
+Run reward-hacking audit (writes `reward_hacking_report.json`):
+
+```bash
+CRISIS_ROOM_BASE_URL=http://127.0.0.1:7860 .venv/bin/python scripts/reward_hacking_audit.py
+```
+
+---
+
+## Innovation / Why this matters
+
+Most “incident demos” are static UIs or prompt-only simulations. Crisis Room is a **step-based RL environment** with:
+- multi-component rewards (resolution, investigation, efficiency, communication) rather than a single sparse signal
+- hidden ground truth per incident to prevent “declare resolved” reward gaming
+- explicit anti-spam and invalid-action penalties
+- a deployable FastAPI + UI demo on Hugging Face Spaces
 
 ### Available Actions
 | Action | Description |
