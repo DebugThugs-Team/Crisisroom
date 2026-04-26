@@ -271,7 +271,7 @@ hr.small{border:none;border-top:1px solid var(--border);margin:16px 0}
       <span>$300K/min</span> revenue bleeding &nbsp;|&nbsp;
       p99 latency: <span>8,200ms</span> &nbsp;|&nbsp;
       RPS drop: <span>67%</span> &nbsp;|&nbsp;
-      Baseline → Trained: <span>0.129 → 0.214 (+65%)</span> &nbsp;|&nbsp;
+      Baseline → Trained: <span>0.13 → 0.214 (+65%)</span> &nbsp;|&nbsp;
       GRPO episodes: <span>complete</span> &nbsp;|&nbsp;
       env: <span>hemankkk/crisis_room</span> &nbsp;|&nbsp;
       built by: <span>DebugThugs</span> &nbsp;|&nbsp;
@@ -322,7 +322,7 @@ hr.small{border:none;border-top:1px solid var(--border);margin:16px 0}
     <img
       class="reward-curve-img"
       src="/static/reward_curve.png"
-      alt="GRPO training reward curve showing improvement from 0.129 to 0.214"
+      alt="GRPO training reward curve showing improvement from 0.13 to 0.214"
       onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
     />
     <div class="reward-curve-img-error">
@@ -335,10 +335,10 @@ hr.small{border:none;border-top:1px solid var(--border);margin:16px 0}
   <div class="results-grid">
     <div class="result-card">
       <div class="rc-label">Baseline (Qwen2.5-72B · Zero-shot)</div>
-      <div class="rc-row"><span class="rc-name">Easy incident</span><span class="rc-val" style="color:var(--amber)">0.500</span></div>
-      <div class="rc-row"><span class="rc-name">Medium incident</span><span class="rc-val" style="color:var(--amber)">0.840</span></div>
-      <div class="rc-row"><span class="rc-name">Hard incident</span><span class="rc-val" style="color:var(--red)">0.467</span></div>
-      <div class="rc-row"><span class="rc-name">GRPO training avg</span><span class="rc-val" style="color:var(--muted)">0.129</span></div>
+      <div class="rc-row"><span class="rc-name">Easy incident</span><span class="rc-val" style="color:var(--amber)">0.12</span></div>
+      <div class="rc-row"><span class="rc-name">Medium incident</span><span class="rc-val" style="color:var(--amber)">0.13</span></div>
+      <div class="rc-row"><span class="rc-name">Hard incident</span><span class="rc-val" style="color:var(--red)">0.13</span></div>
+      <div class="rc-row"><span class="rc-name">GRPO training avg</span><span class="rc-val" style="color:var(--muted)">0.13</span></div>
     </div>
     <div class="result-card highlight">
       <div class="rc-label">After GRPO Training</div>
@@ -515,7 +515,7 @@ hr.small{border:none;border-top:1px solid var(--border);margin:16px 0}
     We trained an AI to be <span class="amber">that person.</span>
   </div>
   <div class="pitch-sub">
-    GRPO training: <strong style="color:var(--text)">0.129 baseline → 0.214 trained</strong> — a <strong style="color:var(--green)">65% improvement</strong> in normalized reward.<br>
+    GRPO training: <strong style="color:var(--text)">0.13 baseline → 0.214 trained</strong> — a <strong style="color:var(--green)">65% improvement</strong> in normalized reward.<br>
     30–50% MTTR reduction = millions of dollars saved per year for any engineering org at scale.<br>
     4 hackathon themes · 4 bonus prizes · 0 prior RL environments for incident command.
   </div>

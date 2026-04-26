@@ -39,7 +39,7 @@ It's 2:47 AM. Payment service is down. Revenue bleeding at $300,000 per minute. 
 | **Average** | **0.13** | **0.21** | **+65%** |
 
 Trained using GRPO with Unsloth on live HuggingFace Space environment.
-Baseline: 0.129 → Trained: 0.214 (+65.1% improvement)
+Baseline: 0.13 → Trained: 0.214 (+65.1% improvement)
 
 ---
 
