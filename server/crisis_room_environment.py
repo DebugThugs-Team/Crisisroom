@@ -398,7 +398,14 @@ def _compute_reward() -> float:
                
     penalty = 0.1 * s["wrong_restarts"]
 
-    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + (0.2 * efficiency) + (0.1 * comms_score) - penalty
+    # Fix bonus: reward using the correct fix *action type* (small, hard to game).
+    fix_bonus = 0.0
+    if s["resolved"] and s.get("actions_taken"):
+        last_action = s["actions_taken"][-1].split(":", 1)[0]
+        if last_action == incident.get("fix_action"):
+            fix_bonus = 0.05
+
+    raw = (0.4 * resolution_score) + (0.3 * investigation_score) + (0.2 * efficiency) + (0.1 * comms_score) + fix_bonus - penalty
     return round(max(0.0, min(1.0, raw)), 4)
 
 
